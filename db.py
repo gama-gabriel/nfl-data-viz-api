@@ -7,8 +7,8 @@ import time
 
 desc = nfl.import_team_desc()
 
-url1 = 'play_by_play_2023.parquet'
-url2 = 'pbp_participation_2023.parquet'
+url1 = 'data/raw/play_by_play_2023.parquet'
+url2 = 'data/raw/pbp_participation_2023.parquet'
 
 df1 = pd.read_parquet(url1)
 df2 = pd.read_parquet(url2)
@@ -35,15 +35,12 @@ def get_off_epa(new_df=new_df, desc=desc):
     return off_epa 
 
 
-
-
-
 def get_off_succ(new_df=new_df):
-    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('posteam').size().reset_index(name='positive plays').rename(columns={'posteam': 'team'})
-    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('posteam').size().reset_index(name='negative plays').rename(columns={'posteam': 'team'})
+    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('posteam').size().reset_index(name='off positive plays').rename(columns={'posteam': 'team'})
+    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('posteam').size().reset_index(name='off negative plays').rename(columns={'posteam': 'team'})
     
     succ_rate = pd.merge(pos_plays, neg_plays, how='outer')
-    succ_rate['success rate'] = succ_rate['positive plays'] / (succ_rate['positive plays'] + succ_rate['negative plays'])
+    succ_rate['off success rate'] = succ_rate['off positive plays'] / (succ_rate['off positive plays'] + succ_rate['off negative plays'])
     return succ_rate
 
 
@@ -53,26 +50,26 @@ def get_def_epa(new_df=new_df):
 
 
 def get_def_succ(new_df=new_df):
-    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('defteam').size().reset_index(name='positive plays').rename(columns={'defteam': 'team'})
-    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('defteam').size().reset_index(name='negative plays').rename(columns={'defteam': 'team'})
+    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('defteam').size().reset_index(name='def positive plays').rename(columns={'defteam': 'team'})
+    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('defteam').size().reset_index(name='def negative plays').rename(columns={'defteam': 'team'})
     
     succ_rate = pd.merge(pos_plays, neg_plays, how='outer')
-    succ_rate['success rate'] = succ_rate['positive plays'] / (succ_rate['positive plays'] + succ_rate['negative plays'])
+    succ_rate['def success rate'] = succ_rate['def positive plays'] / (succ_rate['def positive plays'] + succ_rate['def negative plays'])
     return succ_rate
 
 
-def get_epa():
+def get_epa(desc=desc):
     start_time = time.time()
 
     off_epa = get_off_epa()
     def_epa = get_def_epa()
-    desc = nfl.import_team_desc()
+
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
     epa = pd.merge(pd.merge(off_epa, def_epa, how='outer'), desc, how='outer').dropna()
     epa_json = json.dumps([{'data': {'x': row['offensive epa'], 'y': row['defensive epa']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in epa.iterrows()])
 
-    with open('epa.json', 'w') as file:
+    with open('data/general/epa.json', 'w') as file:
         file.write(epa_json)
     end_time = time.time()
 
@@ -82,6 +79,17 @@ def get_epa():
     # Print the result
     print(f"Script took {elapsed_time} seconds to run.")
 
+def get_succ(desc=desc):
+    off_succ = get_off_succ()
+    def_succ = get_def_succ()
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+    
+    succ = pd.merge(pd.merge(off_succ, def_succ, how='outer'), desc, how='outer').dropna()
+    succ_json = json.dumps([{'data': {'x': row['off success rate'], 'y': row['def success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in succ.iterrows()])
+
+    with open('data/general/succ.json', 'w') as file:
+        file.write(succ_json)
 
 def get_off_succ_epa(desc=desc):
     off_epa = get_off_epa()
@@ -90,9 +98,9 @@ def get_off_succ_epa(desc=desc):
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
     off_succ_epa = pd.merge(pd.merge(off_epa, off_succ, how='outer'), desc, how='outer').dropna()
-    data_json = json.dumps([{'data': {'x': row['offensive epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in off_succ_epa.iterrows()])
+    data_json = json.dumps([{'data': {'x': row['offensive epa'], 'y': row['off success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in off_succ_epa.iterrows()])
 
-    with open('off_succ_epa.json', 'w') as file:
+    with open('data/general/off_succ_epa.json', 'w') as file:
         file.write(data_json)
 
 
@@ -102,9 +110,9 @@ def get_def_succ_epa(desc=desc):
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
     def_succ_epa = pd.merge(pd.merge(def_epa, def_succ, how='outer'), desc, how='outer').dropna()
-    data_json = json.dumps([{'data': {'x': row['defensive epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in def_succ_epa.iterrows()])
+    data_json = json.dumps([{'data': {'x': row['defensive epa'], 'y': row['def success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in def_succ_epa.iterrows()])
 
-    with open('def_succ_epa.json', 'w') as file:
+    with open('data/general/def_succ_epa.json', 'w') as file:
         file.write(data_json)
 
 
@@ -131,12 +139,11 @@ def get_qb_pa():
     pa = pa[(pa['number of passes'] > 90)].sort_values('play action epa', ascending=False)
     pa['success rate'] = pa['positive plays'] / (pa['negative plays'] + pa['positive plays'])
     data_json = json.dumps([{'data': {'x': row['play action epa'], 'y': row['success rate'], 'r': row['number of passes'], 'name': row['name']}, 'primary color': row['primary color'], 'secondary color': row['secondary color']} for _, row in pa.iterrows()])
-    with open('qb_pa.json', 'w') as file:
+    with open('data/players/qb/qb_pa.json', 'w') as file:
         file.write(data_json)
 
 
-
-
+get_succ()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
