@@ -92,31 +92,6 @@ def get_succ(desc=desc):
         file.write(succ_json)
 
 
-def get_off_succ_epa(desc=desc):
-    off_epa = get_off_epa()
-    off_succ = get_off_succ()
-
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
-
-    off_succ_epa = pd.merge(pd.merge(off_epa, off_succ, how='outer'), desc, how='outer').dropna()
-    data_json = json.dumps([{'data': {'x': row['offensive epa'], 'y': row['off success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in off_succ_epa.iterrows()])
-
-    with open('data/general/off_succ_epa.json', 'w') as file:
-        file.write(data_json)
-
-
-def get_def_succ_epa(desc=desc):
-    def_epa = get_def_epa()
-    def_succ = get_def_succ()
-
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
-    def_succ_epa = pd.merge(pd.merge(def_epa, def_succ, how='outer'), desc, how='outer').dropna()
-    data_json = json.dumps([{'data': {'x': row['defensive epa'], 'y': row['def success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in def_succ_epa.iterrows()])
-
-    with open('data/general/def_succ_epa.json', 'w') as file:
-        file.write(data_json)
-
-
 def get_off_dropback(new_df=new_df, desc=desc):
     start_time = time.time()
 
@@ -284,6 +259,60 @@ def get_def_dropback_rush(new_df=new_df, desc=desc):
     print(f"Script took {elapsed_time} seconds to run.")
 
 
+def get_off_succ_epa(desc=desc):
+    off_epa = get_off_epa()
+    off_succ = get_off_succ()
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    off_succ_epa = pd.merge(pd.merge(off_epa, off_succ, how='outer'), desc, how='outer').dropna()
+    data_json = json.dumps([{'data': {'x': row['offensive epa'], 'y': row['off success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in off_succ_epa.iterrows()])
+
+    with open('data/general/off_succ_epa.json', 'w') as file:
+        file.write(data_json)
+
+
+def get_def_succ_epa(desc=desc):
+    def_epa = get_def_epa()
+    def_succ = get_def_succ()
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+    def_succ_epa = pd.merge(pd.merge(def_epa, def_succ, how='outer'), desc, how='outer').dropna()
+    data_json = json.dumps([{'data': {'x': row['defensive epa'], 'y': row['def success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in def_succ_epa.iterrows()])
+
+    with open('data/general/def_succ_epa.json', 'w') as file:
+        file.write(data_json)
+
+
+def get_off_early_downs(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    epa = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'posteam': 'team'})
+    
+    pos_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='positive plays').rename(columns = {'posteam': 'team'})
+    neg_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
+
+    with open('data/general/off_early_downs.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
 def get_qb_pa():
     ftn = nfl.import_ftn_data([2023])
     new_df = nfl.import_pbp_data([2023])
@@ -313,7 +342,7 @@ def get_qb_pa():
 
 
 
-get_def_rush()
+get_off_early_downs()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
