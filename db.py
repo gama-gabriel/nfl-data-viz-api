@@ -91,6 +91,7 @@ def get_succ(desc=desc):
     with open('data/general/succ.json', 'w') as file:
         file.write(succ_json)
 
+
 def get_off_succ_epa(desc=desc):
     off_epa = get_off_epa()
     off_succ = get_off_succ()
@@ -114,6 +115,173 @@ def get_def_succ_epa(desc=desc):
 
     with open('data/general/def_succ_epa.json', 'w') as file:
         file.write(data_json)
+
+
+def get_off_dropback(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    epa = new_df[(new_df['pass'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'epa': 'dropback epa', 'posteam': 'team'})
+    
+    pos_plays = new_df[((new_df['pass'] == 1) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='dropback positive plays').rename(columns = {'posteam': 'team'})
+    neg_plays = new_df[((new_df['pass'] == 1) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='dropback negative plays').rename(columns = {'posteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['dropback success rate'] = succ['dropback positive plays'] / (succ['dropback positive plays'] + succ['dropback negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    dropback = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    dropback_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['dropback success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in dropback.iterrows()])
+
+    with open('data/general/off_dropback.json', 'w') as file:
+        file.write(dropback_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_def_dropback(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    epa = new_df[(new_df['pass'] == 1)].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'epa': 'dropback epa', 'defteam': 'team'})
+    
+    pos_plays = new_df[((new_df['pass'] == 1) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='dropback positive plays').rename(columns = {'defteam': 'team'})
+    neg_plays = new_df[((new_df['pass'] == 1) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='dropback negative plays').rename(columns = {'defteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['dropback success rate'] = succ['dropback positive plays'] / (succ['dropback positive plays'] + succ['dropback negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    dropback = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    dropback_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['dropback success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in dropback.iterrows()])
+
+    with open('data/general/def_dropback.json', 'w') as file:
+        file.write(dropback_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_off_rush(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    epa = new_df[(new_df['rush'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'epa': 'dropback epa', 'posteam': 'team'})
+    
+    pos_plays = new_df[((new_df['rush'] == 1) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='dropback positive plays').rename(columns = {'posteam': 'team'})
+    neg_plays = new_df[((new_df['rush'] == 1) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='dropback negative plays').rename(columns = {'posteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['dropback success rate'] = succ['dropback positive plays'] / (succ['dropback positive plays'] + succ['dropback negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    rush = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    rush_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['dropback success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in rush.iterrows()])
+
+    with open('data/general/off_rush.json', 'w') as file:
+        file.write(rush_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+
+def get_def_rush(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    epa = new_df[(new_df['rush'] == 1)].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'epa': 'dropback epa', 'defteam': 'team'})
+    
+    pos_plays = new_df[((new_df['rush'] == 1) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='dropback positive plays').rename(columns = {'defteam': 'team'})
+    neg_plays = new_df[((new_df['rush'] == 1) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='dropback negative plays').rename(columns = {'defteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['dropback success rate'] = succ['dropback positive plays'] / (succ['dropback positive plays'] + succ['dropback negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    rush = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    rush_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['dropback success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in rush.iterrows()])
+
+    with open('data/general/def_rush.json', 'w') as file:
+        file.write(rush_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_off_dropback_rush(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    dropback = new_df[(new_df['pass'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns= {'posteam': 'team', 'epa': 'dropback epa'})
+
+    rush = new_df[(new_df['rush'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns= {'posteam': 'team', 'epa': 'rush epa'})
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(dropback, rush, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['rush epa']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
+
+    with open('data/general/off_dropback_rush.json', 'w') as file:
+        file.write(data_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_def_dropback_rush(new_df=new_df, desc=desc):
+    start_time = time.time()
+
+    dropback = new_df[(new_df['pass'] == 1)].groupby('defteam')['epa'].mean().reset_index().rename(columns= {'defteam': 'team', 'epa': 'dropback epa'})
+
+    rush = new_df[(new_df['rush'] == 1)].groupby('defteam')['epa'].mean().reset_index().rename(columns= {'defteam': 'team', 'epa': 'rush epa'})
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(dropback, rush, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['rush epa']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
+
+    with open('data/general/def_dropback_rush.json', 'w') as file:
+        file.write(data_json)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
 
 
 def get_qb_pa():
@@ -143,7 +311,9 @@ def get_qb_pa():
         file.write(data_json)
 
 
-get_succ()
+
+
+get_def_rush()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
