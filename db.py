@@ -413,13 +413,14 @@ def get_off_screens(new_df=ftn, desc=desc):
     neg_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
 
     succ = pd.merge(pos_plays, neg_plays, how='outer')
-    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
+    succ['number of plays'] = succ['positive plays'] + succ['negative plays']
+    succ['success rate'] = succ['positive plays'] / succ['number of plays']
 
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color', 'team_color2']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_color2': 'secondary color', 'team_name': 'full_name'})
 
     data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
 
-    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()]))
+    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate'], 'r': row['number of plays'], 'name': row['team']}, 'primary color': row['color'], 'secondary color': row['secondary color']} for _, row in data.iterrows()]))
 
     with open('data/general/off_screen.json', 'w') as file:
         file.write(data_json)
@@ -442,13 +443,15 @@ def get_def_screens(new_df=ftn, desc=desc):
     neg_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='negative plays').rename(columns = {'defteam': 'team'})
 
     succ = pd.merge(pos_plays, neg_plays, how='outer')
-    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
+    succ['number of plays'] = succ['positive plays'] + succ['negative plays']
+    succ['success rate'] = succ['positive plays'] / succ['number of plays']
 
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color', 'team_color2']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_color2': 'secondary color', 'team_name': 'full_name'})
 
     data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
 
-    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()]))
+    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate'], 'r': row['number of plays'], 'name': row['team']}, 'primary color': row['color'], 'secondary color': row['secondary color']} for _, row in data.iterrows()]))
 
     with open('data/general/def_screen.json', 'w') as file:
         file.write(data_json)
@@ -491,7 +494,7 @@ def get_qb_pa():
 
 
 
-get_def_screens()
+get_off_screens()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
