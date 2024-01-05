@@ -9,10 +9,14 @@ desc = nfl.import_team_desc()
 
 url1 = 'data/raw/play_by_play_2023.parquet'
 url2 = 'data/raw/pbp_participation_2023.parquet'
+url3 = 'data/raw/ftn_charting_2023.parquet'
 
 df1 = pd.read_parquet(url1)
 df2 = pd.read_parquet(url2)
-new_df = pd.merge(df1,df2, how='left', on=['play_id','old_game_id'])
+df3 = pd.read_parquet(url3)
+df3 = df3.rename(columns = {'nflverse_game_id': 'game_id', 'nflverse_play_id': 'play_id'})
+new_df = pd.merge(df1, df2, how='left', on=['play_id','old_game_id'])
+ftn = pd.merge(df1, df3, how='outer', on=['game_id', 'play_id'])
 
 def get_off_epa(new_df=new_df, desc=desc):
     start_time = time.time()
@@ -400,6 +404,64 @@ def get_def_late_downs(new_df=new_df, desc=desc):
     print(f"Script took {elapsed_time} seconds to run.")
 
 
+def get_off_screens(new_df=ftn, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[(new_df['is_screen_pass'] == True)].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'posteam': 'team', 'epa': 'screen epa'})
+
+    pos_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='positive plays').rename(columns = {'posteam': 'team'})
+    neg_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()]))
+
+    with open('data/general/off_screen.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_def_screens(new_df=ftn, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[(new_df['is_screen_pass'] == True)].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'defteam': 'team', 'epa': 'screen epa'})
+
+    pos_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='positive plays').rename(columns = {'defteam': 'team'})
+    neg_plays = new_df[((new_df['is_screen_pass'] == True) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='negative plays').rename(columns = {'defteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps(([{'data': {'x': row['screen epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()]))
+
+    with open('data/general/def_screen.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
 def get_qb_pa():
     ftn = nfl.import_ftn_data([2023])
     new_df = nfl.import_pbp_data([2023])
@@ -429,7 +491,7 @@ def get_qb_pa():
 
 
 
-get_off_late_downs()
+get_def_screens()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
