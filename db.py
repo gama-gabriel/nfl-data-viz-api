@@ -4,7 +4,30 @@ import pandas as pd
 import datetime
 import numpy
 import time
+import requests
+import pyarrow.parquet as pq
+from io import BytesIO
 
+def update_raw(url='https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2023.parquet', save_path='data/raw/play_by_play_2022.parquet'):
+    start_time = time.time()
+
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        parquet_data = BytesIO(response.content)
+        
+        table = pq.read_table(parquet_data)
+        
+        pq.write_table(table, save_path)
+
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+        
 desc = nfl.import_team_desc()
 
 url1 = 'data/raw/play_by_play_2023.parquet'
