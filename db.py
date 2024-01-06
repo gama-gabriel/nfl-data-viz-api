@@ -464,6 +464,66 @@ def get_def_screens(new_df=ftn, desc=desc):
     # Print the result
     print(f"Script took {elapsed_time} seconds to run.")
 
+def get_off_trick(new_df=ftn, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[(new_df['is_trick_play'] == True)].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'posteam': 'team', 'epa': 'trick play epa'})
+
+    pos_plays = new_df[((new_df['is_trick_play'] == True) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='positive plays').rename(columns = {'posteam': 'team'})
+    neg_plays = new_df[((new_df['is_trick_play'] == True) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['number of plays'] = succ['positive plays'] + succ['negative plays']
+    succ['success rate'] = succ['positive plays'] / succ['number of plays']
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color', 'team_color2']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_color2': 'secondary color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps(([{'data': {'x': row['trick play epa'], 'y': row['success rate'], 'r': row['number of plays'], 'name': row['team']}, 'primary color': row['color'], 'secondary color': row['secondary color']} for _, row in data.iterrows()]))
+
+    with open('data/general/off_trick.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_def_trick(new_df=ftn, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[(new_df['is_trick_play'] == True)].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'defteam': 'team', 'epa': 'trick play epa'})
+
+    pos_plays = new_df[((new_df['is_trick_play'] == True) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='positive plays').rename(columns = {'defteam': 'team'})
+    neg_plays = new_df[((new_df['is_trick_play'] == True) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='negative plays').rename(columns = {'defteam': 'team'})
+
+    succ = pd.merge(pos_plays, neg_plays, how='outer')
+    succ['number of plays'] = succ['positive plays'] + succ['negative plays']
+    succ['success rate'] = succ['positive plays'] / succ['number of plays']
+
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color', 'team_color2']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_color2': 'secondary color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps(([{'data': {'x': row['trick play epa'], 'y': row['success rate'], 'r': row['number of plays'], 'name': row['team']}, 'primary color': row['color'], 'secondary color': row['secondary color']} for _, row in data.iterrows()]))
+
+    with open('data/general/def_trick.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
 
 def get_qb_pa():
     ftn = nfl.import_ftn_data([2023])
@@ -494,7 +554,7 @@ def get_qb_pa():
 
 
 
-get_off_screens()
+get_def_trick()
 
 def tempo():
     with open('tempo.txt', 'a') as file:
