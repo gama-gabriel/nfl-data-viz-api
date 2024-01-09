@@ -19,9 +19,9 @@ def homepage():
     
 
 @app.route('/epa')
-def epa():
-    get_off_epa()
-    with open ('epa.json', 'r') as file:
+def general({name}):
+    get_{name}()
+    with open (f'{name}.json', 'r') as file:
         data = json.load(file)
         return jsonify(data)   
 
