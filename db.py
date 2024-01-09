@@ -670,6 +670,56 @@ def get_def_no_huddle(new_df=ftn, desc=desc):
     print(f"Script took {elapsed_time} seconds to run.")
 
 
+def get_off_short(new_df=new_df, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['ydstogo'] <= 3)].groupby('posteam')['epa'].mean().reset_index().rename(columns= {'posteam': 'team'})
+
+    conversion = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['ydstogo'] <= 3)].drop_duplicates(subset= ['series', 'posteam', 'game_id']).groupby('posteam')['series_success'].mean().reset_index().rename(columns={'posteam': 'team', 'series_success': 'series success'})
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, conversion, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['series success']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
+
+    with open('data/general/off_short.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
+def get_def_short(new_df=new_df, desc=desc):
+    start_time = time.time()
+    
+    epa = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['ydstogo'] <= 3)].groupby('defteam')['epa'].mean().reset_index().rename(columns= {'defteam': 'team'})
+
+    conversion = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['ydstogo'] <= 3)].drop_duplicates(subset= ['series', 'defteam', 'game_id']).groupby('defteam')['series_success'].mean().reset_index().rename(columns={'defteam': 'team', 'series_success': 'series success'})
+
+    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
+
+    data = pd.merge(pd.merge(epa, conversion, how='outer'), desc, how='outer').dropna()
+
+    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['series success']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
+
+    with open('data/general/def_short.json', 'w') as file:
+        file.write(data_json)
+    
+    end_time = time.time()
+
+    # # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Print the result
+    print(f"Script took {elapsed_time} seconds to run.")
+
+
 def get_qb_pa():
     ftn = nfl.import_ftn_data([2023])
     new_df = nfl.import_pbp_data([2023])
@@ -699,7 +749,9 @@ def get_qb_pa():
 
 
 
+
 get_off_no_huddle()
+
 
 def tempo():
     with open('tempo.txt', 'a') as file:
