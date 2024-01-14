@@ -51,8 +51,6 @@ def get_side_epa(side, new_df=new_df):
 
 
 
-
-
 def get_off_succ(new_df=new_df):
     pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('posteam').size().reset_index(name='off positive plays').rename(columns={'posteam': 'team'})
     neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('posteam').size().reset_index(name='off negative plays').rename(columns={'posteam': 'team'})
@@ -273,7 +271,7 @@ def get_def_dropback_rush(new_df=new_df, desc=desc):
 
 
 def get_off_succ_epa(desc=desc):
-    off_epa = get_off_epa()
+    off_epa = get_side_epa(side='offense')
     off_succ = get_off_succ()
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
@@ -286,7 +284,7 @@ def get_off_succ_epa(desc=desc):
 
 
 def get_def_succ_epa(desc=desc):
-    def_epa = get_def_epa()
+    def_epa = get_side_epa(side='defense')
     def_succ = get_def_succ()
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
