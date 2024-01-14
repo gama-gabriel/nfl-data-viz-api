@@ -50,22 +50,14 @@ def get_side_epa(side, new_df=new_df):
     return epa
 
 
+def get_side_succ(side, new_df=new_df):
+    keys = {'offense': {'group': 'posteam', 'label': 'off'}, 'defense': {'group': 'defteam', 'label': 'def'}}
 
-def get_off_succ(new_df=new_df):
-    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('posteam').size().reset_index(name='off positive plays').rename(columns={'posteam': 'team'})
-    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('posteam').size().reset_index(name='off negative plays').rename(columns={'posteam': 'team'})
-    
+    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby(keys[side]['group']).size().reset_index(name=f'{keys[side]['label']} positive plays').rename(columns={keys[side]['group']: 'team'})
+    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby(keys[side]['group']).size().reset_index(name=f'{keys[side]['label']} negative plays').rename(columns={keys[side]['group']: 'team'})
+
     succ_rate = pd.merge(pos_plays, neg_plays, how='outer')
-    succ_rate['off success rate'] = succ_rate['off positive plays'] / (succ_rate['off positive plays'] + succ_rate['off negative plays'])
-    return succ_rate
-
-
-def get_def_succ(new_df=new_df):
-    pos_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0)].groupby('defteam').size().reset_index(name='def positive plays').rename(columns={'defteam': 'team'})
-    neg_plays = new_df[((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0)].groupby('defteam').size().reset_index(name='def negative plays').rename(columns={'defteam': 'team'})
-    
-    succ_rate = pd.merge(pos_plays, neg_plays, how='outer')
-    succ_rate['def success rate'] = succ_rate['def positive plays'] / (succ_rate['def positive plays'] + succ_rate['def negative plays'])
+    succ_rate[f'{keys[side]['label']} success rate'] = succ_rate[f'{keys[side]['label']} positive plays'] / (succ_rate[f'{keys[side]['label']} positive plays'] + succ_rate[f'{keys[side]['label']} negative plays'])
     return succ_rate
 
 
@@ -91,8 +83,8 @@ def get_epa(desc=desc):
     print(f"Script took {elapsed_time} seconds to run.")
 
 def get_succ(desc=desc):
-    off_succ = get_off_succ()
-    def_succ = get_def_succ()
+    off_succ = get_side_succ(side='offense')
+    def_succ = get_side_succ(side='defense')
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
     
@@ -272,7 +264,7 @@ def get_def_dropback_rush(new_df=new_df, desc=desc):
 
 def get_off_succ_epa(desc=desc):
     off_epa = get_side_epa(side='offense')
-    off_succ = get_off_succ()
+    off_succ = get_side_succ(side='offense')
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
@@ -285,7 +277,7 @@ def get_off_succ_epa(desc=desc):
 
 def get_def_succ_epa(desc=desc):
     def_epa = get_side_epa(side='defense')
-    def_succ = get_def_succ()
+    def_succ = get_side_succ(side='defense')
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
     def_succ_epa = pd.merge(pd.merge(def_epa, def_succ, how='outer'), desc, how='outer').dropna()
