@@ -2,15 +2,16 @@ import json
 import nfl_data_py as nfl
 import pandas as pd
 import datetime
-import numpy
 import time
 import requests
 import pyarrow.parquet as pq
 from io import BytesIO
 
-def update_raw(url='https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2023.parquet', save_path='data/raw/play_by_play_2022.parquet'):
+def update_raw(url='https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_', year=2023, save_path='data/raw/play_by_play_'):
     start_time = time.time()
 
+    url = url + str(year) + '.parquet'
+    save_path = save_path + str(year) + '.parquet'
     response = requests.get(url)
     
     if response.status_code == 200:
@@ -41,25 +42,15 @@ df3 = df3.rename(columns = {'nflverse_game_id': 'game_id', 'nflverse_play_id': '
 new_df = pd.merge(df1, df2, how='left', on=['play_id','old_game_id'])
 ftn = pd.merge(df1, df3, how='outer', on=['game_id', 'play_id'])
 
-def get_off_epa(new_df=new_df, desc=desc):
-    start_time = time.time()
 
-    # df2 = pd.read_parquet(url2)
-    # new_df = pd.merge(df1, df2, how='left',  on=['play_id','old_game_id'])
-    # new_df = pd.read_parquet(url1, engine='auto')
+def get_side_epa(side, new_df=new_df):
+    keys = {'offense': {'group': 'posteam', 'label': 'offensive'}, 'defense': {'group': 'defteam', 'label': 'defensive'}}
+
+    epa = new_df[(new_df['pass'] == 1) | (new_df['rush'] == 1)].groupby(keys[side]['group'])['epa'].mean().reset_index().rename(columns = {'epa': f'{keys[side]['label']} epa', keys[side]['group']: 'team'})
+    return epa
 
 
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
-    off_epa = new_df[(new_df['pass'] == 1) | (new_df['rush'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'epa': 'offensive epa', 'posteam': 'team'})
-    end_time = time.time()
-
-    # # Calculate the elapsed time
-    elapsed_time = end_time - start_time
-
-    # Print the result
-    print(f"Script took {elapsed_time} seconds to run.")
-    return off_epa 
 
 
 def get_off_succ(new_df=new_df):
@@ -69,11 +60,6 @@ def get_off_succ(new_df=new_df):
     succ_rate = pd.merge(pos_plays, neg_plays, how='outer')
     succ_rate['off success rate'] = succ_rate['off positive plays'] / (succ_rate['off positive plays'] + succ_rate['off negative plays'])
     return succ_rate
-
-
-def get_def_epa(new_df=new_df):
-    def_epa = new_df[(new_df['pass'] == 1) | (new_df['rush'] == 1)].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'epa': 'defensive epa', 'defteam': 'team'})
-    return def_epa
 
 
 def get_def_succ(new_df=new_df):
@@ -88,8 +74,8 @@ def get_def_succ(new_df=new_df):
 def get_epa(desc=desc):
     start_time = time.time()
 
-    off_epa = get_off_epa()
-    def_epa = get_def_epa()
+    off_epa = get_side_epa(side='offense')
+    def_epa = get_side_epa(side='defense')
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
