@@ -95,6 +95,7 @@ def get_succ(desc=desc):
     with open('data/general/succ.json', 'w') as file:
         file.write(succ_json)
 
+
 def get_side_play_type(side, play_type, new_df=new_df, desc=desc):
     keys = {'offense': {'group': 'posteam', 'label': 'off'}, 'defense': {'group': 'defteam', 'label': 'def'}, 'dropback': {'filter': 'pass'}, 'rush': {'filter': 'rush'}}
     
@@ -127,12 +128,14 @@ def get_side_play_type(side, play_type, new_df=new_df, desc=desc):
 
 
 
-def get_off_dropback_rush(new_df=new_df, desc=desc):
+def get_side_dropback_rush(side, new_df=new_df, desc=desc):
+    keys = {'offense': {'group': 'posteam', 'label': 'off'}, 'defense': {'group': 'defteam', 'label': 'def'}}
+    
     start_time = time.time()
 
-    dropback = new_df[(new_df['pass'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns= {'posteam': 'team', 'epa': 'dropback epa'})
+    dropback = new_df[(new_df['pass'] == 1)].groupby(keys[side]['group'])['epa'].mean().reset_index().rename(columns= {keys[side]['group']: 'team', 'epa': 'dropback epa'})
 
-    rush = new_df[(new_df['rush'] == 1)].groupby('posteam')['epa'].mean().reset_index().rename(columns= {'posteam': 'team', 'epa': 'rush epa'})
+    rush = new_df[(new_df['rush'] == 1)].groupby(keys[side]['group'])['epa'].mean().reset_index().rename(columns= {keys[side]['group']: 'team', 'epa': 'rush epa'})
 
     desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
 
@@ -140,7 +143,7 @@ def get_off_dropback_rush(new_df=new_df, desc=desc):
 
     data_json = json.dumps([{'data': {'x': row['dropback epa'], 'y': row['rush epa']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
 
-    with open('data/general/off_dropback_rush.json', 'w') as file:
+    with open(f'data/general/{keys[side]['label']}_dropback_rush.json', 'w') as file:
         file.write(data_json)
 
     end_time = time.time()
@@ -641,7 +644,7 @@ def get_qb_pa():
 
 
 
-get_side_play_type(side='defense', play_type='dropback')
+get_side_dropback_rush(side='offense')
 
 
 def tempo():
