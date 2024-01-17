@@ -170,13 +170,15 @@ def get_side_succ_epa(side, desc=desc):
         file.write(data_json)
 
 
-def get_off_early_downs(new_df=new_df, desc=desc):
+def get_side_group_downs(side, downs: list, new_df=new_df, desc=desc):
+    keys = {'offense': {'group': 'posteam', 'label': 'off'}, 'defense': {'group': 'defteam', 'label': 'def'}}
+    
     start_time = time.time()
 
-    epa = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'posteam': 'team'})
+    epa = new_df[(((new_df['down'] == downs[0]) | (new_df['down'] == downs[1])) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby(keys[side]['group'])['epa'].mean().reset_index().rename(columns = {keys[side]['group']: 'team'})
     
-    pos_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='positive plays').rename(columns = {'posteam': 'team'})
-    neg_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
+    pos_plays = new_df[(((new_df['down'] == downs[0]) | (new_df['down'] == downs[1])) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby(keys[side]['group']).size().reset_index(name='positive plays').rename(columns = {keys[side]['group']: 'team'})
+    neg_plays = new_df[(((new_df['down'] == downs[0]) | (new_df['down'] == downs[1])) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby(keys[side]['group']).size().reset_index(name='negative plays').rename(columns = {keys[side]['group']: 'team'})
 
     succ = pd.merge(pos_plays, neg_plays, how='outer')
     succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
@@ -187,95 +189,13 @@ def get_off_early_downs(new_df=new_df, desc=desc):
 
     data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
 
-    with open('data/general/off_early_downs.json', 'w') as file:
-        file.write(data_json)
-    
-    end_time = time.time()
-
-    # # Calculate the elapsed time
-    elapsed_time = end_time - start_time
-
-    # Print the result
-    print(f"Script took {elapsed_time} seconds to run.")
-
-
-def get_def_early_downs(new_df=new_df, desc=desc):
-    start_time = time.time()
-
-    epa = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'defteam': 'team'})
-    
-    pos_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='positive plays').rename(columns = {'defteam': 'team'})
-    neg_plays = new_df[(((new_df['down'] == 1) | (new_df['down'] == 2)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='negative plays').rename(columns = {'defteam': 'team'})
-
-    succ = pd.merge(pos_plays, neg_plays, how='outer')
-    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
-
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
-
-    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
-
-    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
-
-    with open('data/general/def_early_downs.json', 'w') as file:
-        file.write(data_json)
-    
-    end_time = time.time()
-
-    # # Calculate the elapsed time
-    elapsed_time = end_time - start_time
-
-    # Print the result
-    print(f"Script took {elapsed_time} seconds to run.")
-
-
-def get_off_late_downs(new_df=new_df, desc=desc):
-    start_time = time.time()
-
-    epa = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby('posteam')['epa'].mean().reset_index().rename(columns = {'posteam': 'team'})
-    
-    pos_plays = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby('posteam').size().reset_index(name='positive plays').rename(columns = {'posteam': 'team'})
-    neg_plays = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby('posteam').size().reset_index(name='negative plays').rename(columns = {'posteam': 'team'})
-
-    succ = pd.merge(pos_plays, neg_plays, how='outer')
-    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
-
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
-
-    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
-
-    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
-
-    with open('data/general/off_late_downs.json', 'w') as file:
-        file.write(data_json)
-    
-    end_time = time.time()
-
-    # # Calculate the elapsed time
-    elapsed_time = end_time - start_time
-
-    # Print the result
-    print(f"Script took {elapsed_time} seconds to run.")
-
-
-def get_def_late_downs(new_df=new_df, desc=desc):
-    start_time = time.time()
-
-    epa = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)))].groupby('defteam')['epa'].mean().reset_index().rename(columns = {'defteam': 'team'})
-    
-    pos_plays = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] > 0))].groupby('defteam').size().reset_index(name='positive plays').rename(columns = {'defteam': 'team'})
-    neg_plays = new_df[(((new_df['down'] == 3) | (new_df['down'] == 4)) & ((new_df['pass'] == 1) | (new_df['rush'] == 1)) & (new_df['epa'] <= 0))].groupby('defteam').size().reset_index(name='negative plays').rename(columns = {'defteam': 'team'})
-
-    succ = pd.merge(pos_plays, neg_plays, how='outer')
-    succ['success rate'] = succ['positive plays'] / (succ['positive plays'] + succ['negative plays'])
-
-    desc = desc[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']].rename(columns={'team_abbr': 'team', 'team_logo_espn': 'logo', 'team_color': 'color', 'team_name': 'full_name'})
-
-    data = pd.merge(pd.merge(epa, succ, how='outer'), desc, how='outer').dropna()
-
-    data_json = json.dumps([{'data': {'x': row['epa'], 'y': row['success rate']}, 'name': row['team'], 'logo': row['logo'], 'color': row['color']} for _, row in data.iterrows()])
-
-    with open('data/general/def_late_downs.json', 'w') as file:
-        file.write(data_json)
+    if downs == [1, 2]:
+        with open(f'data/general/{keys[side]['label']}_early_downs.json', 'w') as file:
+            file.write(data_json)
+    else:
+        if downs == [3, 4]:
+            with open(f'data/general/{keys[side]['label']}_late_downs.json', 'w') as file:
+                file.write(data_json)
     
     end_time = time.time()
 
@@ -609,7 +529,7 @@ def get_qb_pa():
 
 
 
-get_side_succ_epa(side='defense')
+get_side_group_downs(side='defense', downs=[3, 4])
 
 
 def tempo():
