@@ -528,7 +528,6 @@ def get_qb_pa():
 
 
 
-
 get_side_group_downs(side='defense', downs=[3, 4])
 
 
